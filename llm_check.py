@@ -4,13 +4,6 @@ import argparse
 import ollama
 from typing import List
 
-# Topics to check relevance against
-TOPICS = [
-    "Coach Carter movie (2005), starring Samuel L. Jackson",
-    "The Oscars slap incident between Will Smith and Chris Rock in 2022",
-    "White House meeting between Donald Trump and the Ukrainian president Volodymyr Zelenskyy",
-]
-
 
 def get_txt_files(folder_path: str) -> List[str]:
     return [f for f in os.listdir(folder_path) if f.endswith(".txt")]

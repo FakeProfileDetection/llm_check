@@ -1,1 +1,5 @@
 ollama
+boto3
+botocore
+boto3-stubs
+boto3-stubs[bedrock-runtime]
