@@ -11,7 +11,7 @@ def get_txt_files(folder_path: str) -> List[str]:
 
 
 def read_file_content(file_path: str) -> str:
-    with open(file_path, "r", encoding="utf-8") as file:
+    with open(file_path, "rb") as file:
         return file.read()
 
 
@@ -35,6 +35,12 @@ Return your answer as JSON in the format:
     "Oscars Slap": <percentage>,
     "Trump-Ukraine Meeting": <percentage>
 }}
+ONLY return the JSON object, nothing else.
+Do not include any other text or explanation.
+
+Determine the relevance of the text to each topic and return a percentage score for each topic. The comments must not only discuss the video but comment on the video.  
+For example, ONLY stating the name of the video is NOT relevant. The must DISCUSS the video in some way.  The comments must be relevant to the video and not just a general comment.
+
 """
 
 
@@ -94,19 +100,32 @@ def analyze_text(text: str, model: str = "us.anthropic.claude-sonnet-4-20250514-
         )
 
 
-def main(folder_path: str, model: str = "anthropic/claude-v1"):
+def main(folder_path: str, args):
+    model = args.model
+    output_file = args.output
+    json_data = []
     files = get_txt_files(folder_path)
     for filename in files:
-        sleep(30)
-        path = os.path.join(folder_path, filename)
-        text = read_file_content(path)
-        print(f"\nAnalyzing {filename}...")
-        result = analyze_text(text, model=model)
-        sleep(30)  # Sleep to avoid rate limiting
-        if result:
-            print(json.dumps(result, indent=2))
-        else:
-            print("Could not determine relevance.")
+        try:
+            path = os.path.join(folder_path, filename)
+            text = read_file_content(path)
+            print(f"\nAnalyzing {filename}...")
+            result_str,_,_ = analyze_text(text, model=model)
+            result = json.loads(result_str)
+            result['filename'] = filename
+            result['text'] = str(text)
+            json_data.append(result)
+            if result:
+                print(json.dumps(result, indent=2))
+            else:
+                print("Could not determine relevance.")
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
+            print("Skipping this file.")
+        sleep(1)
+            
+    with open(output_file, "w") as f:
+        json.dump(json_data, f, indent=2)
 
 
 if __name__ == "__main__":
@@ -119,6 +138,36 @@ if __name__ == "__main__":
         default="us.anthropic.claude-sonnet-4-20250514-v1:0",
         help="Bedrock model to use (default: us.anthropic.claude-sonnet-4-20250514-v1:0)",
     )
+    parser.add_argument("-o", "--output", help="Output file for results", default="results.json")
     args = parser.parse_args()
 
-    main(args.folder, model=args.model)
+    main(args.folder, args)
+
+# def main(folder_path: str, model: str = "anthropic/claude-v1"):
+#     files = get_txt_files(folder_path)
+#     for filename in files:
+#         sleep(30)
+#         path = os.path.join(folder_path, filename)
+#         text = read_file_content(path)
+#         print(f"\nAnalyzing {filename}...")
+#         result = analyze_text(text, model=model)
+#         sleep(30)  # Sleep to avoid rate limiting
+#         if result:
+#             print(json.dumps(result, indent=2))
+#         else:
+#             print("Could not determine relevance.")
+
+
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         description="Check text relevance to specific events."
+#     )
+#     parser.add_argument("folder", help="Folder containing .txt files")
+#     parser.add_argument(
+#         "--model",
+#         default="us.anthropic.claude-sonnet-4-20250514-v1:0",
+#         help="Bedrock model to use (default: us.anthropic.claude-sonnet-4-20250514-v1:0)",
+#     )
+#     args = parser.parse_args()
+
+#     main(args.folder, model=args.model)
